@@ -89,14 +89,31 @@ app.delete("api/persons/:id", (request, response) => {
 app.post("/api/persons", (request, response) => {
   const body = request.body;
 
-  const person = {
-    name: body.name,
-    number: body.number,
-    id: generateId(),
-  };
+  if (!body.name) {
+    response.status(404).json({
+      error: "Name is missing",
+    });
+  } else if (!body.number) {
+    response.status(404).json({
+      error: "Number is missing",
+    });
+  } else if (body.name) {
+    res = persons.find((person) => (person.name = body.name));
+    if (res) {
+      response.status(205).json({
+        error: "Name already exists",
+      });
+    } else {
+      const person = {
+        name: body.name,
+        number: body.number,
+        id: generateId(),
+      };
 
-  persons.concat(person);
-  response.json(person);
+      persons.concat(person);
+      response.json(person);
+    }
+  }
 });
 
 const PORT = 3001;
