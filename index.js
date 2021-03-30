@@ -1,7 +1,16 @@
 const express = require("express");
+const morgan = require("morgan");
 
 const app = express();
 app.use(express.json());
+
+morgan.token("data", (request) => {
+  if (request.method == "POST") return " " + JSON.stringify(request.body);
+  else return " ";
+});
+app.use(
+  morgan(":method :url :status :res[content-length] - :response-time ms :data")
+);
 
 const generateId = () => {
   const maxId = Math.floor(Math.random() * 9999) + 1;
@@ -98,7 +107,7 @@ app.post("/api/persons", (request, response) => {
       error: "Number is missing",
     });
   } else if (body.name) {
-    res = persons.find((person) => (person.name = body.name));
+    res = persons.find((person) => (person.name === body.name));
     if (res) {
       response.status(205).json({
         error: "Name already exists",
@@ -115,6 +124,12 @@ app.post("/api/persons", (request, response) => {
     }
   }
 });
+
+const unknownEndpoint = (request, response) => {
+  response.status(404).send({ error: "unknown endpoint" });
+};
+
+app.use(unknownEndpoint);
 
 const PORT = 3001;
 app.listen(PORT);
