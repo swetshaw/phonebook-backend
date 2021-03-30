@@ -3,6 +3,11 @@ const express = require("express");
 const app = express();
 app.use(express.json());
 
+const generateId = () => {
+  const maxId = Math.floor(Math.random() * 9999) + 1;
+  return maxId;
+};
+
 const persons = [
   {
     name: "Arto Hellas",
@@ -79,6 +84,19 @@ app.delete("api/persons/:id", (request, response) => {
   persons = persons.filter((person) => person.id !== id);
 
   response.status(204).end();
+});
+
+app.post("/api/persons", (request, response) => {
+  const body = request.body;
+
+  const person = {
+    name: body.name,
+    number: body.number,
+    id: generateId(),
+  };
+
+  persons.concat(person);
+  response.json(person);
 });
 
 const PORT = 3001;
