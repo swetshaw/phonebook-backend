@@ -1,8 +1,10 @@
 const express = require("express");
 const morgan = require("morgan");
+const cors = require("cors");
 
 const app = express();
 app.use(express.json());
+app.use(cors());
 
 morgan.token("data", (request) => {
   if (request.method == "POST") return " " + JSON.stringify(request.body);
@@ -88,10 +90,11 @@ app.get("/api/persons/:id", (request, response) => {
   }
 });
 
-app.delete("api/persons/:id", (request, response) => {
+app.delete("/api/persons/:id", (request, response) => {
   const id = Number(request.params.id);
-  persons = persons.filter((person) => person.id !== id);
-
+  const person = persons.filter((person) => person.id !== id);
+  response.json(person);
+  persons = person;
   response.status(204).end();
 });
 
@@ -107,7 +110,7 @@ app.post("/api/persons", (request, response) => {
       error: "Number is missing",
     });
   } else if (body.name) {
-    res = persons.find((person) => (person.name === body.name));
+    res = persons.find((person) => person.name === body.name);
     if (res) {
       response.status(205).json({
         error: "Name already exists",
