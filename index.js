@@ -124,7 +124,7 @@ app.post("/api/persons", (request, response) => {
         id: generateId(),
       };
 
-      persons.concat(person);
+      persons = persons.concat(person);
       response.json(person);
     }
   }
