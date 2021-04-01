@@ -1,6 +1,8 @@
+require("dotenv").config();
 const express = require("express");
 const morgan = require("morgan");
 const cors = require("cors");
+const Phonebook = require("./models/phonebook");
 
 const app = express();
 app.use(express.json());
@@ -70,34 +72,49 @@ let persons = [
 ];
 
 app.get("/api/persons", (request, response) => {
-  response.json(persons);
+  Phonebook.find({}).then((persons) => {
+    response.json(persons);
+  });
 });
 
-app.get("/info", (request, response) => {
+app.get("/info", (request, response, next) => {
   const date = new Date();
-  response.send(
-    `<p>Phonebook has information for ${persons.length} people</p>
-    <p>${date}</p>`
-  );
+  Phonebook.count({})
+    .then((result) => {
+      response.send(
+        `<p>Phonebook has information for ${result} people</p>
+      <p>${date}</p>`
+      );
+    })
+    .catch((error) => {
+      next(error);
+    });
 });
 
 app.get("/api/persons/:id", (request, response) => {
-  const id = Number(request.params.id);
-  const person = persons.find((p) => p.id === id);
-
-  if (person) {
-    response.json(person);
-  } else {
-    response.status(404).end();
-  }
+  const id = request.params.id;
+  Phonebook.findById(id)
+    .then((person) => {
+      if (person) {
+        response.json(person);
+      } else {
+        response.status(404).end();
+      }
+    })
+    .catch((error) => {
+      console.log(error);
+      response.status(500).end();
+    });
 });
 
-app.delete("/api/persons/:id", (request, response) => {
-  const id = Number(request.params.id);
-  const person = persons.filter((person) => person.id !== id);
-  response.json(person);
-  persons = person;
-  response.status(204).end();
+app.delete("/api/persons/:id", (request, response, next) => {
+  Phonebook.findByIdAndRemove(request.params.id)
+    .then((result) => {
+      response.status(204).end();
+    })
+    .catch((error) => {
+      next(error);
+    });
 });
 
 app.post("/api/persons", (request, response) => {
@@ -112,23 +129,62 @@ app.post("/api/persons", (request, response) => {
       error: "Number is missing",
     });
   } else if (body.name) {
-    res = persons.find((person) => person.name === body.name);
-    if (res) {
-      response.status(205).json({
-        error: "Name already exists",
-      });
-    } else {
-      const person = {
-        name: body.name,
-        number: body.number,
-        id: generateId(),
-      };
+    // res = persons.find((person) => person.name === body.name);
+    // if (res) {
+    //   response.status(205).json({
+    //     error: "Name already exists",
+    //   });
+    // } else {
+    //   const person = {
+    //     name: body.name,
+    //     number: body.number,
+    //     id: generateId(),
+    //   };
 
-      persons = persons.concat(person);
-      response.json(person);
-    }
+    //   persons = persons.concat(person);
+    //   response.json(person);
+    // }
+
+    const person = new Phonebook({
+      name: body.name,
+      number: body.number,
+    });
+
+    person.save().then((result) => {
+      response.json(result);
+    });
   }
 });
+
+app.put("/api/persons/:id", (request, response, next) => {
+  body = request.body;
+
+  newPerson = {
+    number: body.number,
+  };
+  Phonebook.findByIdAndUpdate(request.params.id, newPerson, { new: true })
+    .then((updatedResult) => {
+      response.json(updatedResult);
+    })
+    .catch((error) => next(error));
+});
+
+const unknownEndpoint = (request, response, next) => {
+  response.status(404).send({ error: "unknown error" });
+};
+
+app.use(unknownEndpoint);
+
+const errorHandler = (error, request, response) => {
+  console.log(error.message);
+
+  if (error.name === "CastError") {
+    return response.status(400).send({ error: error.message });
+  }
+  next(error);
+};
+
+app.use(errorHandler);
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT);
