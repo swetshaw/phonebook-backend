@@ -102,7 +102,7 @@ app.get("/api/persons/:id", (request, response) => {
       }
     })
     .catch((error) => {
-      console.log(error);
+      // console.log(error);
       response.status(500).end();
     });
 });
@@ -117,10 +117,10 @@ app.delete("/api/persons/:id", (request, response, next) => {
     });
 });
 
-app.post("/api/persons", (request, response) => {
+app.post("/api/persons", (request, response, next) => {
   const body = request.body;
 
-  if (!body.name) {
+  if (body.name === "") {
     response.status(404).json({
       error: "Name is missing",
     });
@@ -145,14 +145,24 @@ app.post("/api/persons", (request, response) => {
     //   response.json(person);
     // }
 
-    const person = new Phonebook({
+    let person = new Phonebook({
       name: body.name,
       number: body.number,
     });
 
-    person.save().then((result) => {
-      response.json(result);
-    });
+    person
+      .save()
+      .then((savedPerson) => {
+        return savedPerson.toJSON();
+      })
+      .then((savedAndFormattedPerson) => response.json(savedAndFormattedPerson))
+      .catch((error) => {next(error)});
+    // .then((result) => {
+    //   response.json(result);
+    // })
+    // .catch((error) => {
+    //   error: error.message;
+    // });
   }
 });
 
@@ -175,11 +185,14 @@ const unknownEndpoint = (request, response, next) => {
 
 app.use(unknownEndpoint);
 
-const errorHandler = (error, request, response) => {
-  console.log(error.message);
+const errorHandler = (error, request, response, next) => {
+  // console.log(error.message);
 
   if (error.name === "CastError") {
     return response.status(400).send({ error: error.message });
+  } else if (error.name === "ValidationError") {
+    // console.log("Validation error response");
+    return response.status(400).json({ error: error.message });
   }
   next(error);
 };

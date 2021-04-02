@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const uniqueValidator = require("mongoose-unique-validator");
 
 const url = process.env.MONGODB_URI;
 
@@ -19,9 +20,11 @@ mongoose
   });
 
 const phonebookSchema = new mongoose.Schema({
-  name: String,
-  number: Number,
+  name: { type: String, require: true, unique: true, minlength: [3, 'Name must be at least 3 characters'] },
+  number: { type: Number, require: true, unique: false, minlength: 8 },
 });
+
+phonebookSchema.plugin(uniqueValidator);
 
 phonebookSchema.set("toJSON", {
   transform: (document, returnedObject) => {
